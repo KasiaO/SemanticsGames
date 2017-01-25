@@ -40,6 +40,34 @@ Agent <- setRefClass(
             accept <- c(accept, f)
           }
         }
+      } else if(complexity == 2) {
+        dim1 <- sample(c("color", "shape", "size"), 1)[[1]]
+        dim2 <- sample(c("color", "shape", "size"), 1)[[1]]
+        conj <- sample(c("and", "or"), 1)[[1]]
+        if(dim1 == dim2) {
+          conj <- "or"
+        }
+        
+        vals1 <- c()
+        vals2 <- c()
+        for(f in figures) {
+          vals1 <- unique(c(vals1, f[[dim1]]))
+          vals2 <- unique(c(vals2, f[[dim2]]))
+        }
+        val1 <- sample(vals1, 1)[[1]]
+        val2 <- sample(vals2, 1)[[1]]
+        
+        for(f in figures) {
+          if(conj == "and") {
+            if(f[[dim1]] == val1 && f[[dim2]] == val2) {
+              accept <- c(accept, f)
+            }
+          } else {
+            if(f[[dim1]] == val1 || f[[dim2]] == val2) {
+              accept <- c(accept, f)
+            }
+          }
+        }
       }
       return(accept)
     },
