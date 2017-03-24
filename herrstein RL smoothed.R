@@ -119,7 +119,7 @@ figDims <- list(
 
 dict <- c("A", "B")
 
-res <- playGame(1000, figDims, dict, 1)
+res <- playGame(50000, figDims, dict, 1)
 par(mfrow = c(1,2))
 plot(res$player1)
 plot(res$player2)

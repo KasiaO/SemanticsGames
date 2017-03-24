@@ -1,4 +1,10 @@
 #####
+## import
+#####
+library(ggplot2)
+
+
+#####
 ## declaration of classes
 #####
 
@@ -53,23 +59,25 @@ Agent <- setRefClass(
     updateSplit = function(figure, communicate, point) {
       newSplit <- split
       if(!point) {
-        while(TRUE) {
-          newName <- sample(names(newSplit), 1)[[1]]
-          if(newName != communicate) {
-            break
-          }
-        }
         
         # remove figure from its previous category
-        for(i in 1:length(newSplit[[communicate]])) {
-          if(identical(newSplit[[communicate]][[i]], figure)) {
-            newSplit[[communicate]][[i]] <- NULL
-            break
+        newSplit[[communicate]] <- lapply(newSplit[[communicate]], function(x) {
+          if(identical(x, figure)) {
+            return(NULL)
+          } else {
+            return(x)
           }
+        })
+
+        # add it to new category
+        newName <- communicate
+        while(newName == communicate) {
+          newName <- sample(names(newSplit), 1)[[1]]
         }
-        # add figure to a new category (may be the same as previously)
+
+        # add figure to a new category
         newSplit[[newName]] <- c(newSplit[[newName]], figure)
-      }
+       }
       return(newSplit)
     },
     
@@ -83,7 +91,7 @@ Agent <- setRefClass(
     },
     
     sendFigure = function(communicate) {
-      while (!(communicate %in% names(split))) {
+      while (length(split[[communicate]]) == 0) {
         # choose randomly a figure
         figure <- sample(unlist(split))[[1]]
         # update split taking into account this figure and failure to communicate
@@ -143,6 +151,7 @@ setEnvironment <- function(figDims, dict) {
   env$player1 <- player1
   env$player2 <- player2
   env$dict <- dict
+  env$log <- initLog()
   
   return(env)
 }
@@ -160,6 +169,15 @@ oneRound <- function(env, isTwoWay) {
   point1 <- env$player1$givePoint(signal1, action1)
   env$player2$updateScore(point1)
   
+  env$log <- addLogEntry(
+    env$log, 
+    env$player1$split, 
+    env$player2$split, 
+    signal1, 
+    action1, 
+    point1
+  )
+  
   if(isTwoWay) {
     # switch roles
     drawn2 <- drawFigure(env$figures)
@@ -167,6 +185,15 @@ oneRound <- function(env, isTwoWay) {
     action2 <- env$player1$sendFigure(signal2)
     point2 <- env$player2$givePoint(signal2, action2)
     env$player1$updateScore(point2)
+    
+    env$log <- addLogEntry(
+      env$log, 
+      env$player1$split, 
+      env$player2$split, 
+      signal2, 
+      action2, 
+      point2
+    )
   }
   
   # update splits
@@ -189,6 +216,82 @@ playGame <- function(n, figDims, dict, isTwoWay) {
     avgScores$player2 <- c(avgScores$player2, env$player2$score/i)
   }
   
+  write.table(env$log, file = "log.csv", sep = ";")
+  
   return(avgScores)
 }
 
+aggRes <- function(playerRes) {
+  agg <- c()
+  for(i in 1:length(res[[1]])) {
+    part <- lapply(res, function(x) x[i])
+    agg <- c(agg, mean(part))
+  }
+  return(agg)
+}
+
+plotRes <- function(res) {
+  res <- as.data.frame(res)
+  if(any(res$player1) && any(res$player2)) {
+    g <- ggplot(res, aes(1:nrow(res), player1, player2)) + 
+      geom_line(aes(y = player1, colour = "Player 1")) + 
+      geom_line(aes(y = player2, colour = "Player 2")) +
+      xlab("Iteration")
+  } else if(any(res$player1)) {
+    g <- ggplot(res, aes(1:nrow(res), player1)) + 
+      geom_line(aes(y = player1, colour = "Player 1")) +
+      xlab("Iteration")
+  } else {
+    g <- ggplot(res, aes(1:nrow(res), player2)) + 
+      geom_line(aes(y = player2, colour = "Player 2")) +
+      xlab("Iteration")
+  }
+  
+  return(g)
+}
+
+logFig <- function(figure) {
+  figString <- paste(
+      as.character(figure$color),
+      as.character(figure$size),
+      as.character(figure$shape)
+    )
+  return(figString)
+}
+
+logSplit <- function(split) {
+  string <- c()
+  for(d in names(split)) {
+    string <- paste0(string, d, ":")
+    for(fig in split[[d]]) {
+      string <- paste(string, logFig(fig), ", ")
+    }
+  }
+  return(string)
+}
+
+logEx <- function(split1, split2, signal, action, point) {
+  log <- data.frame(
+    split1 = logSplit(split1),
+    split2 = logSplit(split2),
+    signal,
+    action = logFig(action),
+    point
+  )
+  return(log)
+}
+
+initLog <- function(){
+  log <- data.frame(
+    split1 = character(),
+    split2 = character(),
+    signal = character(),
+    action = character(),
+    point = logical()
+  )
+  return(log)
+}
+
+addLogEntry <- function(log, split1, split2, signal, action, point) {
+  return(rbind(log, logEx(split1, split2, signal, action, point)))
+}

@@ -8,7 +8,9 @@ source('base.R')
 hrlLearner <- setRefClass(
   "hrlLearner",
   fields = list(
-    urns = "list"
+    urns = "list",
+    split = "list",
+    score = "numeric"
   ),
   contains = "Agent",
   methods = list(
@@ -106,6 +108,7 @@ setEnvironment <- function(figDims, dict) {
   env$player1 <- player1
   env$player2 <- player2
   env$dict <- dict
+  env$log <- initLog()
   
   return(env)
 }
@@ -122,7 +125,5 @@ figDims <- list(
 
 dict <- c("A", "B")
 
-res <- playGame(100, figDims, dict, 1)
-par(mfrow = c(1,2))
-plot(res$player1)
-plot(res$player2)
+res <- playGame(5, figDims, dict, 0)
+plotRes(res)
