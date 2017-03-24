@@ -125,5 +125,5 @@ figDims <- list(
 
 dict <- c("A", "B")
 
-res <- playGame(5, figDims, dict, 0)
+res <- playGame(500, figDims, dict, 0)
 plotRes(res)

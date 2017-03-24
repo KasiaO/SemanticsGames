@@ -35,11 +35,9 @@ hrlLearner <- setRefClass(
     
     updateUrns = function(figure, communicate, point) {
       # no penalty
-      if(point) {
-        urns[[findUrn(figure)]][[communicate]] <<- ({
-          urns[[findUrn(figure)]][[communicate]]*(1-delta) + delta          
-        })
-      }
+      urns[[findUrn(figure)]][[communicate]] <<- ({
+        urns[[findUrn(figure)]][[communicate]]*(1-delta) + delta*point          
+      })
     },
     
     updateSplit = function(figure, communicate, point) {
@@ -93,7 +91,7 @@ setEnvironment <- function(figDims, dict) {
     split = list(),
     score = 0,
     urns = list(),
-    delta = 0.1
+    delta = 0.4
   )
   player2$split <- player2$makeSplit(figures, dict)
   player2$urns <- player2$initUrns(figures, dict)
@@ -119,7 +117,5 @@ figDims <- list(
 
 dict <- c("A", "B")
 
-res <- playGame(50000, figDims, dict, 1)
-par(mfrow = c(1,2))
-plot(res$player1)
-plot(res$player2)
+res <- playGame(5000, figDims, dict, 1)
+plotRes(res)
