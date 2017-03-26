@@ -216,18 +216,9 @@ playGame <- function(n, figDims, dict, isTwoWay) {
     avgScores$player2 <- c(avgScores$player2, env$player2$score/i)
   }
   
-  write.table(env$log, file = "log.csv", sep = ";")
+  #write.table(env$log, file = "log.csv", sep = ";")
   
   return(avgScores)
-}
-
-aggRes <- function(playerRes) {
-  agg <- c()
-  for(i in 1:length(res[[1]])) {
-    part <- lapply(res, function(x) x[i])
-    agg <- c(agg, mean(part))
-  }
-  return(agg)
 }
 
 plotRes <- function(res) {
@@ -236,15 +227,15 @@ plotRes <- function(res) {
     g <- ggplot(res, aes(1:nrow(res), player1, player2)) + 
       geom_line(aes(y = player1, colour = "Player 1")) + 
       geom_line(aes(y = player2, colour = "Player 2")) +
-      xlab("Iteration")
+      xlab("Iteration") + scale_y_continuous(limits = c(0, 1))
   } else if(any(res$player1)) {
     g <- ggplot(res, aes(1:nrow(res), player1)) + 
       geom_line(aes(y = player1, colour = "Player 1")) +
-      xlab("Iteration")
+      xlab("Iteration") + scale_y_continuous(limits = c(0, 1))
   } else {
     g <- ggplot(res, aes(1:nrow(res), player2)) + 
       geom_line(aes(y = player2, colour = "Player 2")) +
-      xlab("Iteration")
+      xlab("Iteration") + scale_y_continuous(limits = c(0, 1))
   }
   
   return(g)
@@ -294,4 +285,28 @@ initLog <- function(){
 
 addLogEntry <- function(log, split1, split2, signal, action, point) {
   return(rbind(log, logEx(split1, split2, signal, action, point)))
+}
+
+
+aggRes <- function(playerRes) {
+  agg <- c()
+  for(i in 1:length(playerRes[[1]])) {
+    part <- lapply(playerRes, function(x) x[i])
+    agg <- c(agg, mean(unlist(part)))
+  }
+  return(agg)
+}
+
+runSimulation <- function(iter, n, figDims, dict, isTwoWay) {
+  res <- list()
+  for(i in 1:iter) {
+    part <- playGame(n, figDims, dict, isTwoWay)
+    res$player1[[i]] <- part$player1
+    res$player2[[i]] <- part$player2
+  }
+  tuturutu <<- res
+  agg <- list()
+  agg$player1 <- aggRes(res$player1)
+  agg$player2 <- aggRes(res$player2)
+  return(agg)
 }

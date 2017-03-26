@@ -126,3 +126,10 @@ dict <- c("A", "B")
 
 res <- playGame(5000, figDims, dict, 1)
 plotRes(res)
+
+######
+## run simulation
+######
+
+sim <- runSimulation(10, 500, figDims, dict, 0)
+plotRes(sim)

@@ -2,15 +2,15 @@
 source('base.R')
 
 #####
-## learning agents - basic Herrnstein RL, full memory
+## learning agents - basic Herrnstein RL, smoothed memory
 #####
 
 hrlLearner <- setRefClass(
   "hrlLearner",
   fields = list(
     urns = "list",
-    split = "list",
-    score = "numeric"
+    delta = "numeric",
+    lambda = "numeric"
   ),
   contains = "Agent",
   methods = list(
@@ -20,7 +20,7 @@ hrlLearner <- setRefClass(
       for(i in 1:length(figures)) {
         # initialize equal propensities
         # figure is stored in the first position of the list (cannot be a name)
-        urns[[i]] <- c(figures[[i]], rep(1, length = length(dict)))
+        urns[[i]] <- c(figures[[i]], rep(1/length(dict), length = length(dict)))
         names(urns[[i]]) <- c("figure", dict)
       }
       return(urns)
@@ -34,19 +34,17 @@ hrlLearner <- setRefClass(
       }
     },
     
-    # extractFigs = function(urns) {
-    #   figures <- list()
-    #   for(u in urns) {
-    #     figures <- c(figures, u[[1]])
-    #   }
-    #   return(figures)
-    # },
-    
     updateUrns = function(figure, communicate, point) {
       # no penalty
-      if(point) {
-        urns[[findUrn(figure)]][[communicate]] <<- urns[[findUrn(figure)]][[communicate]] + 1
-      }
+      urns[[findUrn(figure)]][[communicate]] <<- ({
+        urns[[findUrn(figure)]][[communicate]]*(1-delta) + delta*point          
+      })
+    },
+    
+    calcProbs = function(urn) {
+      es <- exp(lambda*urn)
+      probs <- es/sum(es)
+      return(probs)
     },
     
     updateSplit = function(figure, communicate, point) {
@@ -57,7 +55,7 @@ hrlLearner <- setRefClass(
         urn <- unlist(urns[[i]][-1])
         figure <- urns[[i]][[1]]
         probs <- urn/sum(urn)
-        drawn <- sample(x = dict, size = 1, prob = probs)[[1]]
+        drawn <- sample(x = dict, size = 1, prob = calcProbs(urn))[[1]]
         split[[drawn]] <- c(split[[drawn]], figure)
       }
       
@@ -90,7 +88,9 @@ setEnvironment <- function(figDims, dict) {
   player1 <- hrlLearner$new(
     split = list(),
     score = 0,
-    urns = list()
+    urns = list(),
+    delta = 0.9,
+    lambda = 10
   )
   player1$split <- player1$makeSplit(figures, dict)
   player1$urns <- player1$initUrns(figures, dict)
@@ -98,7 +98,9 @@ setEnvironment <- function(figDims, dict) {
   player2 <- hrlLearner$new(
     split = list(),
     score = 0,
-    urns = list()
+    urns = list(),
+    delta = 0.1,
+    lambda = 10
   )
   player2$split <- player2$makeSplit(figures, dict)
   player2$urns <- player2$initUrns(figures, dict)
@@ -108,7 +110,6 @@ setEnvironment <- function(figDims, dict) {
   env$player1 <- player1
   env$player2 <- player2
   env$dict <- dict
-  env$log <- initLog()
   
   return(env)
 }
@@ -125,7 +126,7 @@ figDims <- list(
 
 dict <- c("A", "B")
 
-res <- playGame(500, figDims, dict, 0)
+res <- playGame(500, figDims, dict, 1)
 plotRes(res)
 
 ######
