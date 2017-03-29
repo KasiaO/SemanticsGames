@@ -66,9 +66,19 @@ hrlLearner <- setRefClass(
   )
 )
 
+# create player
+initPlayer <- function() {
+  player <- hrlLearner$new(
+    split = list(),
+    score = 0,
+    urns = list()
+  )
+  return(player)
+}
+
 # override setEnvironment
 
-setEnvironment <- function(figDims, dict) {
+setEnvironment <- function(figDims, dict, player1, player2) {
   # input:
   # figDims - list - values for each dimension of the figure description (col, size, shape)
   
@@ -86,20 +96,10 @@ setEnvironment <- function(figDims, dict) {
     figures <- c(figures, newFig)
   }
   
-  # initizalize agents
-  player1 <- hrlLearner$new(
-    split = list(),
-    score = 0,
-    urns = list()
-  )
+  #  configure players
   player1$split <- player1$makeSplit(figures, dict)
   player1$urns <- player1$initUrns(figures, dict)
   
-  player2 <- hrlLearner$new(
-    split = list(),
-    score = 0,
-    urns = list()
-  )
   player2$split <- player2$makeSplit(figures, dict)
   player2$urns <- player2$initUrns(figures, dict)
   
@@ -125,12 +125,50 @@ figDims <- list(
 
 dict <- c("A", "B")
 
-res <- playGame(500, figDims, dict, 0)
-plotRes(res)
+for(twoWay in c(TRUE, FALSE)) {
+  player1 <- initPlayer()
+  player2 <- initPlayer()
+  
+  title <- if(twoWay) {
+    paste0("Two-way Herrstein reinforcement learning with unlimited memory.")
+  } else {
+    paste0("One-way Herrstein reinforcement learning with unlimited memory.")
+  }
+  
+  fileName <- if(twoWay) {
+    'herrstein RL 2way unlim.png'
+  } else {
+    'herrstein RL 1way unlim.png'
+  }
+  
+  res <- playGame(5000, figDims, dict, twoWay, player1, player2)
+  print(plotRes(res, title))
+  dev.copy(png, fileName)
+  dev.off()
+}
+
 
 ######
 ## run simulation
 ######
 
-sim <- runSimulation(10, 500, figDims, dict, 0)
-plotRes(sim)
+for(twoWay in c(TRUE, FALSE)) {
+  title <- if(twoWay) {
+    paste0("Average learning curve for two-way Herrstein reinforcement learning 
+           with unlimited memory.")
+  } else {
+    paste0("Average learning curve for one-way Herrstein reinforcement learning 
+           with unlimited memory.")
+  }
+  
+  fileName <- if(twoWay) {
+    'herrstein RL 2way unlim sim.png'
+  } else {
+    'herrstein RL 1way unlim sim.png'
+  }
+  
+  sim <- runSimulation(20, 500, figDims, dict, twoWay)
+  print(plotRes(sim, title))
+  dev.copy(png, fileName)
+  dev.off()
+}

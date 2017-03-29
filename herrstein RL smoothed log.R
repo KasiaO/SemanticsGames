@@ -64,9 +64,20 @@ hrlLearner <- setRefClass(
   )
 )
 
-# override setEnvironment
+# create player
+initPlayer <- function(delta, lambda) {
+  player <- hrlLearner$new(
+    split = list(),
+    score = 0,
+    urns = list(),
+    delta = delta,
+    lambda = lambda
+  )
+  return(player)
+}
 
-setEnvironment <- function(figDims, dict) {
+# override setEnvironment
+setEnvironment <- function(figDims, dict, player1, player2) {
   # input:
   # figDims - list - values for each dimension of the figure description (col, size, shape)
   
@@ -85,23 +96,10 @@ setEnvironment <- function(figDims, dict) {
   }
   
   # initizalize agents
-  player1 <- hrlLearner$new(
-    split = list(),
-    score = 0,
-    urns = list(),
-    delta = 0.9,
-    lambda = 10
-  )
+
   player1$split <- player1$makeSplit(figures, dict)
   player1$urns <- player1$initUrns(figures, dict)
   
-  player2 <- hrlLearner$new(
-    split = list(),
-    score = 0,
-    urns = list(),
-    delta = 0.1,
-    lambda = 10
-  )
   player2$split <- player2$makeSplit(figures, dict)
   player2$urns <- player2$initUrns(figures, dict)
   
@@ -112,6 +110,22 @@ setEnvironment <- function(figDims, dict) {
   env$dict <- dict
   
   return(env)
+}
+
+# override runSimulation
+runSimulation <- function(iter, n, figDims, dict, isTwoWay, delta1, delta2, lambda1, lambda2) {
+  res <- list()
+  for(i in 1:iter) {
+    player1 <- initPlayer(delta = delta1, lambda = lambda1)
+    player2 <- initPlayer(delta = delta2, lambda = lambda2)
+    part <- playGame(n, figDims, dict, isTwoWay, player1, player2)
+    res$player1[[i]] <- part$player1
+    res$player2[[i]] <- part$player2
+  }
+  agg <- list()
+  agg$player1 <- aggRes(res$player1)
+  agg$player2 <- aggRes(res$player2)
+  return(agg)
 }
 
 #####
@@ -126,12 +140,100 @@ figDims <- list(
 
 dict <- c("A", "B")
 
-res <- playGame(500, figDims, dict, 1)
-plotRes(res)
+twoWay <- TRUE
+  for(delta1 in c(0.1, 0.9)) {
+    for(delta2 in c(0.1, 0.9)) {
+      for(lambda1 in c(5, 25)) {
+        for(lambda2 in c(5,25)) {
+          player1 <- initPlayer(delta = delta1, lambda = lambda1)
+          player2 <- initPlayer(delta = delta2, lambda = lambda2)
+          
+          title <- paste0("Two-way Herrstein smoothed reinforcement learning (log) with 
+                          delta ", 
+                   delta1, " and lambda ", lambda1, " for Player 1 and delta ", 
+                   delta2, " and lambda ", lambda2, " for Player 2.")
+          
+          fileName <- paste0('herrstein smoothed log RL 2way player1', delta1, " ", lambda1, 
+          ' player2 ', delta2, " ", lambda2, '.png')
+          res <- playGame(5000, figDims, dict, twoWay, player1, player2)
+          print(plotRes(res, title))
+          dev.copy(png, fileName)
+          dev.off()
+        }
+      }
+    }
+  }
+
+twoWay <- FALSE
+for(delta2 in c(0.1, 0.9)) {
+    for(lambda2 in c(5,25)) {
+      # will not affect results
+      delta1 <- 0
+      lambda1 <- 0
+      player1 <- initPlayer(delta = delta1, lambda = lambda1)
+      player2 <- initPlayer(delta = delta2, lambda = lambda2)
+      
+      title <- paste0("One-way Herrstein smoothed reinforcement (log) learning with 
+                      delta ", 
+                      delta2, " and lambda ", lambda2, " for Player 2.")
+      
+      fileName <- paste0('herrstein smoothed RL log 1way player2 ', 
+                         delta2, " ", lambda2, '.png')
+      res <- playGame(5000, figDims, dict, twoWay, player1, player2)
+      print(plotRes(res, title))
+      dev.copy(png, fileName)
+      dev.off()
+    }
+  }
+
+
 
 ######
 ## run simulation
 ######
 
-sim <- runSimulation(10, 500, figDims, dict, 0)
-plotRes(sim)
+twoWay <- TRUE
+for(delta1 in c(0.1, 0.9)) {
+  for(delta2 in c(0.1, 0.9)) {
+    for(lambda1 in c(5, 25)) {
+      for(lambda2 in c(5,25)) {
+        player1 <- initPlayer(delta = delta1, lambda = lambda1)
+        player2 <- initPlayer(delta = delta2, lambda = lambda2)
+        
+        title <- paste0("Average learning curve for two-way Herrstein smoothed reinforcement learning (log) with 
+                        delta ", 
+                        delta1, " and lambda ", lambda1, " for Player 1 and delta ", 
+                        delta2, " and lambda ", lambda2, " for Player 2.")
+        
+        fileName <- paste0('herrstein smoothed RL log 2way player1', delta1, " ", lambda1, 
+                           ' player2 ', delta2, " ", lambda2, ' sim.png')
+        sim <- runSimulation(20, 500, figDims, dict, twoWay, delta1, delta2, lambda1, lambda2)
+        print(plotRes(sim, title))
+        dev.copy(png, fileName)
+        dev.off()
+      }
+    }
+  }
+}
+
+twoWay <- FALSE
+for(delta2 in c(0.1, 0.9)) {
+  for(lambda2 in c(5,25)) {
+    # will not affect results
+    delta1 <- 0
+    lambda1 <- 1
+    player1 <- initPlayer(delta = delta1, lambda = lambda1)
+    player2 <- initPlayer(delta = delta2, lambda = lambda2)
+    
+    title <- paste0("Average learning curve for one-way Herrstein smoothed reinforcement learning (log) with 
+                      delta ", 
+                    delta2, " and lambda ", lambda2, " for Player 2.")
+    
+    fileName <- paste0('herrstein smoothed RL log 1way player2 ', 
+                       delta2, " ", lambda2, ' sim.png')
+    sim <- runSimulation(20, 500, figDims, dict, twoWay, delta1, delta2, lambda1, lambda2)
+    print(plotRes(sim, title))
+    dev.copy(png, fileName)
+    dev.off()
+  }
+}
