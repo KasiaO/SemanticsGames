@@ -204,7 +204,7 @@ for(wp in c(0.1, 0.5, 0.9)) {
   fileName <- paste0('herrstein RL 2way nature ', wn, '.png')
   res <- playGame(5000, figDims, dict, twoWay, player1, player2, wp, wn)
   print(plotRes(res, title))
-  dev.copy(png, fileName)
+  dev.copy(png, fileName, width = 500, height = 350)
   dev.off()
   
   
@@ -219,7 +219,7 @@ for(wp in c(0.1, 0.5, 0.9)) {
   
   sim <- runSimulation(20, 500, figDims, dict, twoWay, wp, wn)
   print(plotRes(sim, title))
-  dev.copy(png, fileName)
+  dev.copy(png, fileName, width = 500, height = 350)
   dev.off()
 }
 
