@@ -34,14 +34,6 @@ hrlLearner <- setRefClass(
       }
     },
     
-    # extractFigs = function(urns) {
-    #   figures <- list()
-    #   for(u in urns) {
-    #     figures <- c(figures, u[[1]])
-    #   }
-    #   return(figures)
-    # },
-    
     updateUrns = function(figure, communicate, point) {
       # no penalty
       if(point) {
@@ -54,10 +46,15 @@ hrlLearner <- setRefClass(
       split <- list()
       
       for(i in 1:length(urns)) {
+        # for each urn extract propensities
         urn <- unlist(urns[[i]][-1])
+        # for each urn extract figure it corresponds to
         figure <- urns[[i]][[1]]
+        # calculate probabilities linearly
         probs <- urn/sum(urn)
+        # choose a name for this figure
         drawn <- sample(x = dict, size = 1, prob = probs)[[1]]
+        # add figure to this part of the split
         split[[drawn]] <- c(split[[drawn]], figure)
       }
       
@@ -76,99 +73,25 @@ initPlayer <- function() {
   return(player)
 }
 
-# override setEnvironment
-
+# set envirnment (agent type specific function)
 setEnvironment <- function(figDims, dict, player1, player2) {
-  # input:
-  # figDims - list - values for each dimension of the figure description (col, size, shape)
-  
-  # check configuration
-  stopifnot(c("color", "size", "shape") %in% names(figDims))
   
   # initialize figures
-  combs <- expand.grid(figDims$color, figDims$size, figDims$shape)
-  colnames(combs) <- c("color", "size", "shape")
-  figures <- c()
+  figures <- initFigs(figDims)
   
-  for(i in 1:nrow(combs)) {
-    set <- combs[i,]
-    newFig <- Figure$new(color = set$color, size = set$size, shape = set$shape)
-    figures <- c(figures, newFig)
-  }
-  
-  #  configure players
+  # configure players
   player1$split <- player1$makeSplit(figures, dict)
   player1$urns <- player1$initUrns(figures, dict)
   
   player2$split <- player2$makeSplit(figures, dict)
   player2$urns <- player2$initUrns(figures, dict)
   
+  # set environment
   env <- list()
   env$figures <- figures
   env$player1 <- player1
   env$player2 <- player2
   env$dict <- dict
-  env$log <- initLog()
   
   return(env)
-}
-
-#####
-## run experiment
-#####
-
-figDims <- list(
-  "color" = c("white", "red"),
-  "size" = c("small", "big"),
-  "shape" = c("square", "triangle")
-)
-
-dict <- c("A", "B")
-
-for(twoWay in c(TRUE, FALSE)) {
-  player1 <- initPlayer()
-  player2 <- initPlayer()
-  
-  title <- if(twoWay) {
-    paste0("Two-way Herrstein reinforcement learning with unlimited memory.")
-  } else {
-    paste0("One-way Herrstein reinforcement learning with unlimited memory.")
-  }
-  
-  fileName <- if(twoWay) {
-    'herrstein RL 2way unlim.png'
-  } else {
-    'herrstein RL 1way unlim.png'
-  }
-  
-  res <- playGame(5000, figDims, dict, twoWay, player1, player2)
-  print(plotRes(res, title))
-  dev.copy(png, fileName)
-  dev.off()
-}
-
-
-######
-## run simulation
-######
-
-for(twoWay in c(TRUE, FALSE)) {
-  title <- if(twoWay) {
-    paste0("Average learning curve for two-way Herrstein reinforcement learning 
-           with unlimited memory.")
-  } else {
-    paste0("Average learning curve for one-way Herrstein reinforcement learning 
-           with unlimited memory.")
-  }
-  
-  fileName <- if(twoWay) {
-    'herrstein RL 2way unlim sim.png'
-  } else {
-    'herrstein RL 1way unlim sim.png'
-  }
-  
-  sim <- runSimulation(20, 500, figDims, dict, twoWay)
-  print(plotRes(sim, title))
-  dev.copy(png, fileName)
-  dev.off()
 }
